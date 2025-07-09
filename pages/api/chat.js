@@ -24,10 +24,10 @@ export default async function handler(req, res) {
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4',
-        messages: messages,
-        temperature: 0.7,
-      }),
+  model: 'gpt-3.5-turbo',
+  messages: messages,
+  temperature: 0.7,
+}),
     });
 
     const data = await response.json();
