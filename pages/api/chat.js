@@ -1,8 +1,11 @@
-// pages/api/chat.js
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
   const { messages } = req.body;
+
+  if (!messages || !Array.isArray(messages)) {
+    return res.status(400).json({ reply: 'Fel: Ogiltigt meddelandeformat.' });
+  }
 
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -13,29 +16,19 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: 'gpt-4',
-        messages: messages,
+        messages,
         temperature: 0.7,
       }),
     });
 
     const data = await response.json();
 
-    // Logga hela svaret från OpenAI
-    console.log('OpenAI Response:', JSON.stringify(data, null, 2));
-
-    if (!data.choices || !Array.isArray(data.choices) || data.choices.length === 0) {
-      return res.status(500).json({
-        reply: 'OpenAI returnerade inget giltigt svar.',
-        openaiError: data,
-      });
-    }
-
-    const reply = data.choices[0].message.content;
+    const reply = data?.choices?.[0]?.message?.content || 'OpenAI returnerade inget giltigt svar.';
     res.status(200).json({ reply });
 
   } catch (error) {
     console.error('API Error:', error);
-    res.status(500).json({ reply: 'Ett fel uppstod vid samtal till OpenAI API.' });
+    res.status(500).json({ reply: 'Ett fel uppstod vid kontakt med OpenAI.' });
   }
 }
 
