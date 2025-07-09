@@ -1,11 +1,10 @@
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).end();
+  if (req.method !== 'POST') return res.status(405).json({ reply: 'Endast POST tillåts.' });
 
   const { messages } = req.body;
 
-  // Kontrollera att messages finns och är en array
   if (!messages || !Array.isArray(messages)) {
-    return res.status(400).json({ reply: 'Fel: Meddelandeformatet är ogiltigt.' });
+    return res.status(400).json({ reply: 'Fel: `messages` saknas eller är felaktigt format.' });
   }
 
   try {
@@ -24,9 +23,10 @@ export default async function handler(req, res) {
 
     const data = await response.json();
 
-    // Om det inte finns några svar från OpenAI
-    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-      console.error('OpenAI svarade utan choices:', data);
+    // Debug-logg för att se hela svaret från OpenAI
+    console.log('OpenAI Response:', JSON.stringify(data, null, 2));
+
+    if (!data.choices || !Array.isArray(data.choices) || !data.choices[0]) {
       return res.status(500).json({ reply: 'OpenAI returnerade inget giltigt svar.' });
     }
 
