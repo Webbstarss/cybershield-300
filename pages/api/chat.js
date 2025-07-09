@@ -19,11 +19,23 @@ export default async function handler(req, res) {
     });
 
     const data = await response.json();
-    const reply = data.choices[0]?.message?.content || 'Inget svar.';
 
+    // Logga hela svaret från OpenAI
+    console.log('OpenAI Response:', JSON.stringify(data, null, 2));
+
+    if (!data.choices || !Array.isArray(data.choices) || data.choices.length === 0) {
+      return res.status(500).json({
+        reply: 'OpenAI returnerade inget giltigt svar.',
+        openaiError: data,
+      });
+    }
+
+    const reply = data.choices[0].message.content;
     res.status(200).json({ reply });
+
   } catch (error) {
     console.error('API Error:', error);
-    res.status(500).json({ reply: 'Ett fel uppstod.' });
+    res.status(500).json({ reply: 'Ett fel uppstod vid samtal till OpenAI API.' });
   }
 }
+
