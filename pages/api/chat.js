@@ -1,5 +1,7 @@
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ reply: 'Endast POST tillåts.' });
+  if (req.method !== 'POST') {
+    return res.status(405).json({ reply: 'Endast POST tillåts.' });
+  }
 
   const { messages } = req.body;
 
@@ -8,7 +10,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -21,21 +23,21 @@ export default async function handler(req, res) {
       }),
     });
 
-    const data = await response.json();
+    const data = await openaiRes.json();
 
-    // Debug-logg för att se hela svaret från OpenAI
-    console.log('OpenAI Response:', JSON.stringify(data, null, 2));
+    // Lägg till denna logg för att se exakt vad vi får från OpenAI
+    console.log("Svar från OpenAI API:", JSON.stringify(data, null, 2));
 
-    if (!data.choices || !Array.isArray(data.choices) || !data.choices[0]) {
-      return res.status(500).json({ reply: 'OpenAI returnerade inget giltigt svar.' });
+    if (!data.choices || !Array.isArray(data.choices) || data.choices.length === 0) {
+      return res.status(500).json({ reply: 'OpenAI gav inget svar. Kontrollera API-nyckel och model.' });
     }
 
-    const reply = data.choices[0].message.content;
+    const reply = data.choices[0].message?.content || 'Inget svar från AI:n.';
     res.status(200).json({ reply });
 
   } catch (error) {
     console.error('API Error:', error);
-    res.status(500).json({ reply: 'Ett tekniskt fel uppstod vid kontakt med OpenAI.' });
+    res.status(500).json({ reply: 'Ett fel uppstod vid kontakt med OpenAI.' });
   }
 }
 
