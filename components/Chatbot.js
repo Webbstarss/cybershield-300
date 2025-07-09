@@ -1,92 +1,91 @@
-// components/Chatbot.js
 import { useState } from 'react';
 
 export default function Chatbot() {
-  const [messages, setMessages] = useState([{ role: 'system', content: 'Du är en cybersäkerhetsexpert.' }]);
-  const [userInput, setUserInput] = useState('');
+  const [messages, setMessages] = useState([
+    { role: 'system', content: 'Du är en cybersäkerhetsassistent som hjälper användare förstå och skydda sig mot hot.' },
+  ]);
+  const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
 
   const sendMessage = async () => {
-    if (!userInput.trim()) return;
-    const newMessages = [...messages, { role: 'user', content: userInput }];
+    if (!input.trim()) return;
+
+    const userMessage = { role: 'user', content: input };
+    const newMessages = [...messages, userMessage];
+
     setMessages(newMessages);
-    setUserInput('');
+    setInput('');
     setLoading(true);
-    setError(null);
 
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({ messages: newMessages }),
       });
 
       const data = await res.json();
-      setMessages([...newMessages, { role: 'assistant', content: data.reply }]);
-    } catch (err) {
-      console.error(err);
-      setError('Något gick fel. Försök igen.');
+
+      const botMessage = {
+        role: 'assistant',
+        content: data.reply || 'Inget svar från AI:n.',
+      };
+
+      setMessages([...newMessages, botMessage]);
+    } catch (error) {
+      setMessages([
+        ...newMessages,
+        { role: 'assistant', content: 'Ett fel uppstod vid kontakt med servern.' },
+      ]);
     } finally {
       setLoading(false);
     }
   };
 
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      sendMessage();
+    }
+  };
+
   return (
-    <div className="chat-container">
-      <div className="messages">
+    <div style={{ maxWidth: 600, margin: '0 auto', padding: 20 }}>
+      <h1>Cybersäkerhets-Chatbot</h1>
+      <div
+        style={{
+          border: '1px solid #ccc',
+          borderRadius: 8,
+          padding: 10,
+          height: 400,
+          overflowY: 'auto',
+          background: '#f9f9f9',
+          marginBottom: 10,
+        }}
+      >
         {messages
           .filter((msg) => msg.role !== 'system')
-          .map((msg, i) => (
-            <div key={i} className={msg.role}>
+          .map((msg, idx) => (
+            <div key={idx} style={{ marginBottom: 10 }}>
               <strong>{msg.role === 'user' ? 'Du' : 'AI'}:</strong> {msg.content}
             </div>
           ))}
+        {loading && <div><em>AI skriver...</em></div>}
       </div>
       <textarea
         rows={3}
-        placeholder="Skriv din fråga..."
-        value={userInput}
-        onChange={(e) => setUserInput(e.target.value)}
-        onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        onKeyDown={handleKeyDown}
+        placeholder="Skriv din cybersäkerhetsfråga här..."
+        style={{ width: '100%', padding: 10, borderRadius: 6, border: '1px solid #ccc' }}
       />
-      <button onClick={sendMessage} disabled={loading}>
-        {loading ? 'Svarar...' : 'Skicka'}
+      <button onClick={sendMessage} style={{ marginTop: 10, padding: '10px 20px' }}>
+        Skicka
       </button>
-      {error && <p className="error">{error}</p>}
-      <style jsx>{`
-        .chat-container {
-          max-width: 600px;
-          margin: auto;
-          padding: 1rem;
-        }
-        .messages {
-          background: #f1f1f1;
-          padding: 1rem;
-          border-radius: 8px;
-          height: 300px;
-          overflow-y: auto;
-          margin-bottom: 1rem;
-        }
-        .user {
-          text-align: right;
-          margin-bottom: 0.5rem;
-        }
-        .assistant {
-          text-align: left;
-          margin-bottom: 0.5rem;
-        }
-        textarea {
-          width: 100%;
-          padding: 0.5rem;
-        }
-        button {
-          margin-top: 0.5rem;
-        }
-        .error {
-          color: red;
-        }
-      `}</style>
     </div>
   );
 }
+
