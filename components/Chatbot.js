@@ -1,44 +1,92 @@
+// components/Chatbot.js
 import { useState } from 'react';
 
 export default function Chatbot() {
   const [messages, setMessages] = useState([{ role: 'system', content: 'Du är en cybersäkerhetsexpert.' }]);
-  const [input, setInput] = useState('');
+  const [userInput, setUserInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const sendMessage = async () => {
-    if (!input.trim()) return;
-    const newMessages = [...messages, { role: 'user', content: input }];
+    if (!userInput.trim()) return;
+    const newMessages = [...messages, { role: 'user', content: userInput }];
     setMessages(newMessages);
-    setInput('');
+    setUserInput('');
     setLoading(true);
+    setError(null);
 
-    const res = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: newMessages }),
-    });
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: newMessages }),
+      });
 
-    const data = await res.json();
-    setMessages([...newMessages, { role: 'assistant', content: data.reply }]);
-    setLoading(false);
+      const data = await res.json();
+      setMessages([...newMessages, { role: 'assistant', content: data.reply }]);
+    } catch (err) {
+      console.error(err);
+      setError('Något gick fel. Försök igen.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="chat-container">
       <div className="messages">
-        {messages.slice(1).map((msg, i) => (
-          <div key={i} className={msg.role}>{msg.content}</div>
-        ))}
-        {loading && <div className="assistant">Tänker...</div>}
+        {messages
+          .filter((msg) => msg.role !== 'system')
+          .map((msg, i) => (
+            <div key={i} className={msg.role}>
+              <strong>{msg.role === 'user' ? 'Du' : 'AI'}:</strong> {msg.content}
+            </div>
+          ))}
       </div>
-      <div className="input-area">
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Skriv en fråga..."
-        />
-        <button onClick={sendMessage}>Skicka</button>
-      </div>
+      <textarea
+        rows={3}
+        placeholder="Skriv din fråga..."
+        value={userInput}
+        onChange={(e) => setUserInput(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
+      />
+      <button onClick={sendMessage} disabled={loading}>
+        {loading ? 'Svarar...' : 'Skicka'}
+      </button>
+      {error && <p className="error">{error}</p>}
+      <style jsx>{`
+        .chat-container {
+          max-width: 600px;
+          margin: auto;
+          padding: 1rem;
+        }
+        .messages {
+          background: #f1f1f1;
+          padding: 1rem;
+          border-radius: 8px;
+          height: 300px;
+          overflow-y: auto;
+          margin-bottom: 1rem;
+        }
+        .user {
+          text-align: right;
+          margin-bottom: 0.5rem;
+        }
+        .assistant {
+          text-align: left;
+          margin-bottom: 0.5rem;
+        }
+        textarea {
+          width: 100%;
+          padding: 0.5rem;
+        }
+        button {
+          margin-top: 0.5rem;
+        }
+        .error {
+          color: red;
+        }
+      `}</style>
     </div>
   );
 }
